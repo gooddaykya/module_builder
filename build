@@ -72,19 +72,19 @@ function read_file {
 }
 
 function add_controller {
-    replace_namespace 'skeleton/SkeletonController.php' $1 > "$MODULES_ROOT/$1/Http/Controllers/$(ucfirst $1)Controller.php"
+    replace_namespace 'skeleton/SkeletonController.proto' $1 > "$MODULES_ROOT/$1/Http/Controllers/$(ucfirst $1)Controller.php"
 }
 
 function add_routes {
-    replace_namespace 'skeleton/web.php' $1 > "$MODULES_ROOT/$1/routes/web.php"
+    replace_namespace 'skeleton/web.proto' $1 > "$MODULES_ROOT/$1/routes/web.php"
 }
 
 function add_service_provider {
-    replace_namespace 'skeleton/SkeletonServiceProvider.php' 'app/Providers' > "app/Providers/$(ucfirst $1)ServiceProvider.php"
+    replace_namespace 'skeleton/SkeletonServiceProvider.proto' $1 > "app/Providers/$(ucfirst $1)ServiceProvider.php"
 }
 
 function add_template {
-    read_file 'skeleton/SkeletonIndex.blade.php' > "resources/views/$1/index.blade.php"
+    read_file 'skeleton/SkeletonIndex.blade.proto' > "resources/views/$1/index.blade.php"
 }
 
 function replace_namespace {
@@ -103,7 +103,7 @@ function create_new_module {
     # create new files
     add_controller $1
     add_routes $1
-    add_service_provider
+    add_service_provider $1
     add_template $1
 
     # configure framework
