@@ -2,9 +2,6 @@
 
 TRUE=1
 FALSE=0
-APP_CONFIG="config/app.php"
-COMPOSER_CONFIG="composer.json"
-MODULES_ROOT="modules"
 
 
 function check_param {
@@ -28,6 +25,21 @@ function is_dir_exists {
     echo $res
 }
 
+# check laravel root directory
+if [ $laravel_root -eq "" ]
+then
+    laravel_root='.'
+fi
+
+# set variables
+module_name=$1
+laravel_root=$2
+
+APP_CONFIG="$laravel_root/config/app.php"
+COMPOSER_CONFIG="$laravel_root/composer.json"
+MODULES_ROOT="$laravel_root/modules"
+
+
 function is_module_exists {
     existing_modules=$(ls $MODULES_ROOT)
 
@@ -43,9 +55,7 @@ function create_dir {
 }
 
 function config_app {
-    row_number=$(grep -n "Custom Modules" $APP_CONFIG | cut -d : -f 1)
-    input_row=$(($row_number + 2))
-    read_file $APP_CONFIG | sed -s "$input_row i \ \t\t\App/Providers/$(ucfirst $1)ServiceProvider::class," | sed -s "$input_row s/\//\\\/g" > $APP_CONFIG
+    read_file $APP_CONFIG | sed "$(($(grep -n "Custom Modules" $APP_CONFIG | cut -d : -f 1) + 2)) i \ \t\t\App/Providers/$(ucfirst $1)ServiceProvider::class," | sed -s "$input_row s/\//\\\/g" > $APP_CONFIG
     echo "Service provider added"
 }
 
@@ -64,7 +74,7 @@ function create_root {
 }
 
 function create_view {
-    mkdir resources/views/$1
+    mkdir $laravel_root/resources/views/$1
 }
 
 function read_file {
@@ -80,11 +90,11 @@ function add_routes {
 }
 
 function add_service_provider {
-    replace_namespace 'skeleton/SkeletonServiceProvider.proto' $1 > "app/Providers/$(ucfirst $1)ServiceProvider.php"
+    replace_namespace 'skeleton/SkeletonServiceProvider.proto' $1 > "$laravel_root/app/Providers/$(ucfirst $1)ServiceProvider.php"
 }
 
 function add_template {
-    read_file 'skeleton/SkeletonIndex.blade.proto' > "resources/views/$1/index.blade.php"
+    read_file 'skeleton/SkeletonIndex.blade.proto' > "$laravel_root/resources/views/$1/index.blade.php"
 }
 
 function replace_namespace {
@@ -98,7 +108,7 @@ function ucfirst {
 function create_new_module {
     # create directory structure
     create_root $1
-    create_view $module_name
+    create_view $1
 
     # create new files
     add_controller $1
@@ -113,7 +123,6 @@ function create_new_module {
     dump_autoload
 }
 
-module_name=$1
 
 # check for modules root directory
 if [ $(is_dir_exists $MODULES_ROOT '.') -eq $FALSE ]
