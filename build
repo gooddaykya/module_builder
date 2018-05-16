@@ -1,0 +1,132 @@
+#!/bin/bash
+
+TRUE=1
+FALSE=0
+APP_CONFIG="config/app.php"
+COMPOSER_CONFIG="composer.json"
+MODULES_ROOT="modules"
+
+
+function check_param {
+    res=$FALSE
+    for name in $2
+    do
+        if [ $name == $1 ]
+        then
+            res=$TRUE
+        fi
+    done
+    echo $res
+}
+
+function is_dir_exists {
+    res=$FALSE
+    if [ -d $2/$1 ]
+    then
+        res=$TRUE
+    fi
+    echo $res
+}
+
+function is_module_exists {
+    existing_modules=$(ls $MODULES_ROOT)
+
+    check_param $1 $existing_modules
+}
+
+function is_root_exists {
+    check_param 
+}
+
+function create_dir {
+    mkdir $1
+}
+
+function config_app {
+    row_number=$(grep -n "Custom Modules" $APP_CONFIG | cut -d : -f 1)
+    input_row=$(($row_number + 2))
+    read_file $APP_CONFIG | sed -s "$input_row i \ \t\t\App/Providers/$(ucfirst $1)ServiceProvider::class," | sed -s "$input_row s/\//\\\/g" > $APP_CONFIG
+    echo "Service provider added"
+}
+
+function config_composer {
+    read_file $COMPOSER_CONFIG | sed "$(grep -n "App" $COMPOSER_CONFIG | cut -d : -f 1) i \ \t\t\"$(ucfirst $1)\\\\\\\\\": \"$MODULES_ROOT/$1/\"," > $COMPOSER_CONFIG
+    echo "Namespace added"
+}
+
+function dump_autoload {
+    composer dump-autoload -o
+    echo "Composer autoload updated"
+}
+
+function create_root {
+    mkdir -p $MODULES_ROOT/$1/{routes,Http/{Controllers,Middleware}}
+}
+
+function create_view {
+    mkdir resources/views/$1
+}
+
+function read_file {
+    cat $1
+}
+
+function add_controller {
+    replace_namespace 'skeleton/SkeletonController.php' $1 > "$MODULES_ROOT/$1/Http/Controllers/$(ucfirst $1)Controller.php"
+}
+
+function add_routes {
+    replace_namespace 'skeleton/web.php' $1 > "$MODULES_ROOT/$1/routes/web.php"
+}
+
+function add_service_provider {
+    replace_namespace 'skeleton/SkeletonServiceProvider.php' 'app/Providers' > "app/Providers/$(ucfirst $1)ServiceProvider.php"
+}
+
+function add_template {
+    read_file 'skeleton/SkeletonIndex.blade.php' > "resources/views/$1/index.blade.php"
+}
+
+function replace_namespace {
+    read_file $1 | sed -s "s/%\(.*\)%/$(ucfirst $2)/g" | sed -s "s/~\(.*\)~/$2/g"
+}
+
+function ucfirst {
+    echo ${1^}
+}
+
+function create_new_module {
+    # create directory structure
+    create_root $1
+    create_view $module_name
+
+    # create new files
+    add_controller $1
+    add_routes $1
+    add_service_provider
+    add_template $1
+
+    # configure framework
+    config_app $1
+    config_composer $1
+
+    dump_autoload
+}
+
+module_name=$1
+
+# check for modules root directory
+if [ $(is_dir_exists $MODULES_ROOT '.') -eq $FALSE ]
+then
+    mkdir $MODULES_ROOT
+    echo "Creating modules root directory: $MODULES_ROOT/"
+fi
+
+# check if requested module already exists
+if [ $(is_module_exists $module_name ) -eq $TRUE ]
+then
+    echo "Module $module_name already exists. Aborting..."
+else
+    echo "Creating module $module_name"
+    create_new_module $module_name
+fi
