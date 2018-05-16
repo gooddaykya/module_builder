@@ -1,0 +1,5 @@
+<?php
+    namespace %namespace%;
+
+
+    \Route::get('/', '%module%Controller@index');
