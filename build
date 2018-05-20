@@ -8,7 +8,7 @@ function check_param {
     res=$FALSE
     for name in $2
     do
-        if [ $name == $1 ]
+        if [ "$name" -eq "$1" ]
         then
             res=$TRUE
         fi
@@ -26,7 +26,7 @@ function is_dir_exists {
 }
 
 # check laravel root directory
-if [ $laravel_root -eq "" ]
+if [ -z $laravel_root ]
 then
     laravel_root='.'
 fi
@@ -42,12 +42,7 @@ MODULES_ROOT="$laravel_root/modules"
 
 function is_module_exists {
     existing_modules=$(ls $MODULES_ROOT)
-
-    check_param $1 $existing_modules
-}
-
-function is_root_exists {
-    check_param 
+    echo $(check_param $1 $existing_modules)
 }
 
 function create_dir {
@@ -55,18 +50,20 @@ function create_dir {
 }
 
 function config_app {
-    read_file $APP_CONFIG | sed "$(($(grep -n "Custom Modules" $APP_CONFIG | cut -d : -f 1) + 2)) i \ \t\t\App/Providers/$(ucfirst $1)ServiceProvider::class," | sed -s "$input_row s/\//\\\/g" > $APP_CONFIG
-    echo "Service provider added"
+    input_row=$(($(grep -n 'Custom Modules' $APP_CONFIG | cut -d : -f 1) + 2))
+    sed -i "$input_row i \ \t\t\App\\\Providers\\\\$(ucfirst $1)ServiceProvider::class," $APP_CONFIG
+    echo 'Service provider added'
 }
 
 function config_composer {
-    read_file $COMPOSER_CONFIG | sed "$(grep -n "App" $COMPOSER_CONFIG | cut -d : -f 1) i \ \t\t\"$(ucfirst $1)\\\\\\\\\": \"$MODULES_ROOT/$1/\"," > $COMPOSER_CONFIG
-    echo "Namespace added"
+    sed -i "$(grep -n 'App' $COMPOSER_CONFIG | cut -d : -f 1) i \ \t\t\"$(ucfirst $1)\\\\\\\\\": \"$MODULES_ROOT/$1/\"," $COMPOSER_CONFIG
+    echo 'Namespace added'
 }
 
 function dump_autoload {
+    cd $laravel_root
     composer dump-autoload -o
-    echo "Composer autoload updated"
+    echo 'Composer autoload updated'
 }
 
 function create_root {
@@ -125,14 +122,14 @@ function create_new_module {
 
 
 # check for modules root directory
-if [ $(is_dir_exists $MODULES_ROOT '.') -eq $FALSE ]
+if [ $(is_dir_exists $MODULES_ROOT ".") -eq $FALSE ]
 then
     mkdir $MODULES_ROOT
     echo "Creating modules root directory: $MODULES_ROOT/"
 fi
 
 # check if requested module already exists
-if [ $(is_module_exists $module_name ) -eq $TRUE ]
+if [ $(is_module_exists $module_name) -eq $TRUE ]
 then
     echo "Module $module_name already exists. Aborting..."
 else
