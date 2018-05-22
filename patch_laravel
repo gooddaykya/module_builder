@@ -1,4 +1,4 @@
 #!/bin/bash
 
 patch $1/config/app.php skeleton/laravel.patch
-mkdir modules
+mkdir $1/modules
