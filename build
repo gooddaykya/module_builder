@@ -39,6 +39,16 @@ APP_CONFIG="$laravel_root/config/app.php"
 COMPOSER_CONFIG="$laravel_root/composer.json"
 MODULES_ROOT="$laravel_root/modules"
 
+function is_laravel_patched {
+    res=$FALSE
+
+    if [ $(grep -c 'Custom modules' $APP_CONFIG) -lt 1 ]
+    then
+        res=$TRUE
+    fi
+
+    echo $res
+}
 
 function is_module_exists {
     existing_modules=$(ls $MODULES_ROOT)
@@ -56,7 +66,7 @@ function config_app {
 }
 
 function config_composer {
-    sed -i "$(grep -n 'App' $COMPOSER_CONFIG | cut -d : -f 1) i \ \t\t\"$(ucfirst $1)\\\\\\\\\": \"$MODULES_ROOT/$1/\"," $COMPOSER_CONFIG
+    sed -i "$(grep -n 'App' $COMPOSER_CONFIG | cut -d : -f 1) i \ \t\t\"$(ucfirst $1)\\\\\\\\\": \"modules/$1/\"," $COMPOSER_CONFIG
     echo 'Namespace added'
 }
 
@@ -121,6 +131,13 @@ function create_new_module {
 }
 
 
+# check for applied patch
+if [ $(is_laravel_patched) -eq $FALSE ]
+then
+    echo "Patching required. Run ./laravel_patch or patch manually and try again. Aborting..."
+    exit 1
+fi
+
 # check for modules root directory
 if [ $(is_dir_exists $MODULES_ROOT ".") -eq $FALSE ]
 then
@@ -132,7 +149,9 @@ fi
 if [ $(is_module_exists $module_name) -eq $TRUE ]
 then
     echo "Module $module_name already exists. Aborting..."
-else
-    echo "Creating module $module_name"
-    create_new_module $module_name
+    exit 1
 fi
+
+# create new module
+echo "Creating module $module_name"
+create_new_module $module_name
