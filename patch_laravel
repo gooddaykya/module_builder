@@ -1,4 +1,16 @@
 #!/bin/bash
 
-patch $1/config/app.php skeleton/laravel.patch
-mkdir $1/modules
+
+function get_abs_path {
+    echo $(cd ${1}; pwd)
+}
+
+src_dir=$(get_abs_path ".")
+dst_dir=$(get_abs_path $1)
+
+if [ ! -f "${dst_dir}/config/app.php" ]
+then
+	echo "Configuration file can not be found in specified directory. Aborting..."
+	exit 1
+fi
+patch "${dst_dir}/config/app.php" "skeleton/laravel.patch" && mkdir "${dst_dir}/modules"
